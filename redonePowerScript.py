@@ -313,35 +313,37 @@ for k in range(N):
 # Reset C.b to nominal before Task 8
 C.b = np.block([G, -D])
 
-# --- Task 7(c): ECDF of one demand sample ------------------------------------
+#ECDF of one demand sample 
 fig7c = plt.figure()
 plot_ECDF_ci(Drand[0, :], 95, fig7c.number, x_label='Demand at Node 1 (MW)', save_plots=True)
-plt.title('Task 7(c): ECDF of Demand at Node 1 (lognormal, median=10 MW)')
+plt.title('ECDF of Demand at Node 1 (lognormal, median=10 MW)')
+plt.savefig('task7c_ecdf_demands.png', dpi=150)
 plt.show()
 
-# --- Task 7(d): ECDF of one line capacity sample -----------------------------
+# ECDF of one line capacity sample
 fig7d = plt.figure()
 plot_ECDF_ci(Trand[0, :], 95, fig7d.number, x_label='Line Capacity, Branch 0 (MW)', save_plots=True)
-plt.title('Task 7(d): ECDF of Line Capacity (Beta, 70-99 MW, q=4, p=2)')
+plt.title('ECDF of Line Capacity (Beta, 70-99 MW, q=4, p=2)')
+plt.savefig('task7d_ecdf_capacities.png', dpi=150)
 plt.show()
 
-# --- Task 7(e): scatter plot of two node demands (uncorrelated) --------------
+# scatter plot of two node demands (uncorrelated)
 fig, ax = plt.subplots()
 ax.scatter(Drand[0, :], Drand[1, :], alpha=0.6)
 ax.set_xlabel('Demand at Node 1 (MW)')
 ax.set_ylabel('Demand at Node 2 (MW)')
-ax.set_title('Task 7(e): Demand Node 1 vs Node 2 (should appear uncorrelated)')
+ax.set_title('Demand Node 1 vs Node 2 (should appear uncorrelated)')
 format_plot(font_size=14, line_width=2, marker_size=5)
 plt.tight_layout()
 plt.savefig('task7e_scatter_demands.png', dpi=150)
 plt.show()
 
-# --- Task 7(f): scatter plot of two line capacities (uncorrelated) -----------
+# scatter plot of two line capacities (uncorrelated)
 fig, ax = plt.subplots()
 ax.scatter(Trand[0, :], Trand[1, :], alpha=0.6)
 ax.set_xlabel('Capacity, Branch 0 (MW)')
 ax.set_ylabel('Capacity, Branch 1 (MW)')
-ax.set_title('Task 7(f): Line Capacity Branch 0 vs Branch 1 (should appear uncorrelated)')
+ax.set_title('Line Capacity Branch 0 vs Branch 1 (should appear uncorrelated)')
 format_plot(font_size=14, line_width=2, marker_size=5)
 plt.tight_layout()
 plt.savefig('task7f_scatter_capacities.png', dpi=150)
@@ -352,18 +354,15 @@ fig7g = plt.figure()
 plot_ECDF_ci(mc7_net_demand,    95, fig7g.number, x_label='Net Demand (MW)',    save_plots=False)
 plot_ECDF_ci(mc7_net_supply,    95, fig7g.number, x_label='Net Supply (MW)',    save_plots=False)
 plot_ECDF_ci(mc7_net_shortfall, 95, fig7g.number, x_label='Net Shortfall (MW)', save_plots=True)
-plt.title('Task 7(g): ECDF of Net Demand, Net Supply, Net Shortfall (uncorrelated)')
+plt.title('ECDF of Net Demand, Net Supply, Net Shortfall (uncorrelated)')
 plt.show()
 
 # --- Task 7(h): fraction of samples with shortfall > 0.1 MW -----------------
 frac7 = np.mean(mc7_net_shortfall > 0.1)
-print(f"Task 7(h): Fraction of samples with net shortfall > 0.1 MW: {frac7:.3f}")
+print(f"Fraction of samples with net shortfall > 0.1 MW: {frac7:.3f}")
 
 
-# ---- Task 8: correlated demands and line capacities -------------------------
-print("\n" + "="*60)
-print("TASK 8: Monte Carlo with CORRELATED uncertainties")
-print("="*60)
+# 8: correlated demands and line capacities 
 
 # Correlated demand: pairwise correlation = 0.8
 RD_corr = 0.8 * np.ones((nd, nd)) + 0.2 * np.eye(nd)
@@ -409,50 +408,52 @@ for k in range(N):
 # Reset C.b
 C.b = np.block([G, -D])
 
-# --- Task 8(c): ECDF of one demand sample (correlated) -----------------------
+# 8(c): ECDF of one demand sample (correlated)
 fig8c = plt.figure()
 plot_ECDF_ci(Drand_corr[0, :], 95, fig8c.number, x_label='Demand at Node 1 (MW)', save_plots=True)
-plt.title('Task 8(c): ECDF of Demand at Node 1 (correlated, rho=0.8)')
+plt.title('ECDF of Demand at Node 1 (correlated, rho=0.8)')
+plt.savefig('task8c_ecdf_demands.png', dpi=150)
 plt.show()
 
-# --- Task 8(d): ECDF of one line capacity (correlated) -----------------------
+# 8(d): ECDF of one line capacity (correlated) 
 fig8d = plt.figure()
 plot_ECDF_ci(Trand_corr[0, :], 95, fig8d.number, x_label='Line Capacity, Branch 0 (MW)', save_plots=True)
-plt.title('Task 8(d): ECDF of Line Capacity (correlated, rho=0.7)')
+plt.title('ECDF of Line Capacity (correlated, rho=0.7)')
+plt.savefig('task8d_scatter_capacities.png', dpi=150)
 plt.show()
 
-# --- Task 8(e): scatter plot two node demands (correlated) -------------------
+# 8(e): scatter plot two node demands (correlated) 
 fig, ax = plt.subplots()
 ax.scatter(Drand_corr[0, :], Drand_corr[1, :], alpha=0.6, color='orange')
 ax.set_xlabel('Demand at Node 1 (MW)')
 ax.set_ylabel('Demand at Node 2 (MW)')
-ax.set_title('Task 8(e): Demand Node 1 vs Node 2 (should appear correlated, rho=0.8)')
+ax.set_title('Demand Node 1 vs Node 2 (should appear correlated, rho=0.8)')
 format_plot(font_size=14, line_width=2, marker_size=5)
 plt.tight_layout()
 plt.savefig('task8e_scatter_demands.png', dpi=150)
 plt.show()
 
-# --- Task 8(f): scatter plot two line capacities (correlated) ----------------
+# 8(f): scatter plot two line capacities (correlated) 
 fig, ax = plt.subplots()
 ax.scatter(Trand_corr[0, :], Trand_corr[1, :], alpha=0.6, color='orange')
 ax.set_xlabel('Capacity, Branch 0 (MW)')
 ax.set_ylabel('Capacity, Branch 1 (MW)')
-ax.set_title('Task 8(f): Line Capacity Branch 0 vs Branch 1 (correlated, rho=0.7)')
+ax.set_title('Line Capacity Branch 0 vs Branch 1 (correlated, rho=0.7)')
 format_plot(font_size=14, line_width=2, marker_size=5)
 plt.tight_layout()
 plt.savefig('task8f_scatter_capacities.png', dpi=150)
 plt.show()
 
-# --- Task 8(g): ECDF of net demand, net supply, net shortfall (correlated) ---
+# 8(g): ECDF of net demand, net supply, net shortfall (correlated) 
 fig8g = plt.figure()
-plot_ECDF_ci(mc8_net_demand,    95, fig8g.number, x_label='Net Demand (MW)',    save_plots=False)
-plot_ECDF_ci(mc8_net_supply,    95, fig8g.number, x_label='Net Supply (MW)',    save_plots=False)
+plot_ECDF_ci(mc8_net_demand,    95, fig8g.number, x_label='Net Demand (MW)',    save_plots=True)
+plot_ECDF_ci(mc8_net_supply,    95, fig8g.number, x_label='Net Supply (MW)',    save_plots=True)
 plot_ECDF_ci(mc8_net_shortfall, 95, fig8g.number, x_label='Net Shortfall (MW)', save_plots=True)
-plt.title('Task 8(g): ECDF of Net Demand, Net Supply, Net Shortfall (correlated)')
+plt.title('ECDF of Net Demand, Net Supply, Net Shortfall (correlated)')
 plt.show()
 
-# --- Task 8(h): fraction with shortfall > 0.1 MW ----------------------------
+# 8(h): fraction with shortfall > 0.1 MW 
 frac8 = np.mean(mc8_net_shortfall > 0.1)
-print(f"Task 8(h): Fraction of samples with net shortfall > 0.1 MW: {frac8:.3f}")
+print(f"Fraction of samples with net shortfall > 0.1 MW: {frac8:.3f}")
 
 print("\nDone.")
