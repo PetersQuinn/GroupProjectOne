@@ -51,7 +51,6 @@ def power_grid_analysis(v, C):
     b      = C.b      # 14-vector of RHS values
     c      = C.c      # 24-vector of cost coefficients
     loss   = C.loss   # scalar transmission loss factor epsilon
-    A_orig = C.A_orig  # 14x24 un-negated matrix — physical signs for loss computation
     L = A_orig @ np.diag(v)                        # 14x24, use original signs for loss
     A_scaled = C.A * (1 - loss * H(-L))            # apply scaled A (with negated demand rows)
     f = c @ v
