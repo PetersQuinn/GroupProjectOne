@@ -63,7 +63,7 @@ def power_grid_analysis(v, C):
 # where i actually solve the problem and do the Monte Carlo risk analysis
 # ==============================================================================
 
-# --- Problem constants --------------------------------------------------------
+# Problem constants 
 cA   = 20                                      # cost rate at generator A, $/MW
 cB   = 12                                      # cost rate at generator B, $/MW
 D    = np.array([10, 15, 20, 10, 20, 50,
@@ -163,7 +163,7 @@ m, n = C.A.shape   # m=14 constraints, n=24 design variables
 sumA = np.sum(C.A, axis=0)
 print("Column sums of A (should all be 0):", sumA)
 
-# --- Bounds on design variables ----------------------------------------------
+# Bounds on design variables 
 # Generator-connected branches: flow must be 0 <= P <= T (can only leave generator)
 # All other branches: -T <= P <= T (bidirectional)
 
@@ -183,10 +183,10 @@ v_init = np.array([
     10.0, 50.0, 50.0,  5.0,  5.0,  5.0,  # lower-network transmission
 ])
 
-# --- Optimization options [msg, tol_v, tol_f, tol_g, max_evals] -------------
+#  Optimization options [msg, tol_v, tol_f, tol_g, max_evals] 
 opts = [1, 1e-3, 1e-4, 1e-3, 5e3]
 
-# --- Solve in two steps: first without losses (easier), then with losses -----
+#  Solve in two steps: first without losses (easier), then with losses 
 # Step 1: loss = 0 to get a good initial guess
 C.loss = 0
 v_opt, f_opt, g_opt, cvg_hst, lbda_opt, _ = sqp(
@@ -198,12 +198,12 @@ C.loss = loss
 v_opt, f_opt, g_opt, cvg_hst, lbda_opt, _ = sqp(
     power_grid_analysis, v_init, v_lb, v_ub, opts, C)
 
-# --- Plot convergence history ------------------------------------------------
+# Plot convergence history
 format_plot(font_size=15, line_width=3, marker_size=7)
 plot_cvg_hst(cvg_hst, v_opt, opts, save_plots=True)
 plt.show()
 
-# --- Post-processing: net generation, supply, demand, shortfall --------------
+# Post-processing: net generation, supply, demand, shortfall 
 # Net generation: total power leaving generators
 net_generation = np.sum(v_opt[0:6])
 
@@ -219,7 +219,7 @@ net_demand = np.sum(D)
 # Net shortfall
 net_shortfall = net_demand - net_supply
 
-# --- Display results ---------------------------------------------------------
+# Display results 
 formatted_supply = np.char.mod('%6.2f', supply[2:])
 print(f"supply : {' '.join(formatted_supply)}")
 
@@ -349,7 +349,7 @@ plt.tight_layout()
 plt.savefig('task7f_scatter_capacities.png', dpi=150)
 plt.show()
 
-# --- Task 7(g): ECDF of net demand, net supply, net shortfall ----------------
+#ECDF of net demand, net supply, net shortfall 
 fig7g = plt.figure()
 plot_ECDF_ci(mc7_net_demand,    95, fig7g.number, x_label='Net Demand (MW)',    save_plots=False)
 plot_ECDF_ci(mc7_net_supply,    95, fig7g.number, x_label='Net Supply (MW)',    save_plots=False)
@@ -357,7 +357,7 @@ plot_ECDF_ci(mc7_net_shortfall, 95, fig7g.number, x_label='Net Shortfall (MW)', 
 plt.title('ECDF of Net Demand, Net Supply, Net Shortfall (uncorrelated)')
 plt.show()
 
-# --- Task 7(h): fraction of samples with shortfall > 0.1 MW -----------------
+# fraction of samples with shortfall > 0.1 MW 
 frac7 = np.mean(mc7_net_shortfall > 0.1)
 print(f"Fraction of samples with net shortfall > 0.1 MW: {frac7:.3f}")
 
