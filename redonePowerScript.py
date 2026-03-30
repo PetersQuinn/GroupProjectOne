@@ -1,4 +1,3 @@
-# module power_grid ************************************************************
 import numpy as np
 from matplotlib import pyplot as plt
 from types import SimpleNamespace
@@ -6,44 +5,6 @@ from multivarious.opt import sqp
 from multivarious.rvs import lognormal, beta
 from multivarious.utl import opt_options, plot_cvg_hst, format_plot, plot_ECDF_ci
 
-# ==============================================================================
-# Design variable vector v (24 variables, columns 0-23):
-#
-#  idx:  0      1      2      3      4      5      6      7      8
-#        PA1    PA2    PA3    PB7    PB8    PB9    P12    P1_11  P1_12
-#
-#  idx:  9      10     11     12     13     14     15     16     17
-#        P23    P2_12  P34    P45    P46    P56    P57    P67    P68
-#
-#  idx:  18     19     20     21     22     23
-#        P78    P89    P9_10  P10_11 P10_12 P11_12
-#
-# Constraint rows (14 rows of A), each multiplied by [1 - eps*H(L(v))]:
-#   Row  0: Node A  (generator cap,   <=)  -> written as  +Av <= b
-#   Row  1: Node B  (generator cap,   <=)  -> written as  +Av <= b
-#   Row  2: Node 1  (demand satisfied, >=) -> written as  -Av <= -b
-#   Row  3: Node 2
-#   Row  4: Node 3
-#   Row  5: Node 4
-#   Row  6: Node 5
-#   Row  7: Node 6
-#   Row  8: Node 7
-#   Row  9: Node 8
-#   Row 10: Node 9
-#   Row 11: Node 10
-#   Row 12: Node 11
-#   Row 13: Node 12
-#
-# Sign convention in A:
-#   +1 means that branch's power LEAVES node (so loss factor hits H(-P), i.e. L entry = -P)
-#   -1 means that branch's power ARRIVES at node (so loss factor hits H(+P), i.e. L entry = +P)
-#
-#   The matrix L = A @ diag(v), and H(-L) picks up losses on outgoing flows.
-#   Constraint: A * [1 - eps*H(-L)] * v <= b
-# ==============================================================================
-
-
-# --- function H(X) ------------------------------------------------------------
 def H(X):
     """
     Heaviside function applied element-wise to matrix X.
@@ -51,10 +12,7 @@ def H(X):
     """
     HX = (X > 0).astype(float)
     return HX
-# ------------------------------------------------------ end of function H(X) --
 
-
-# --- function power_grid_analysis(v, C) ---------------------------------------
 def power_grid_analysis(v, C):
     """
     Analysis function for the 12-node power grid with transmission losses.
@@ -93,40 +51,16 @@ def power_grid_analysis(v, C):
     b      = C.b      # 14-vector of RHS values
     c      = C.c      # 24-vector of cost coefficients
     loss   = C.loss   # scalar transmission loss factor epsilon
-
-    # L = A @ diag(v): L[i,j] = A[i,j] * v[j]
-    # For a +1 entry (flow leaves node i): L[i,j] = +v[j], so H(-L[i,j]) = H(-v[j])
-    #   -> loss factor = 1 - eps  when v[j] > 0 (power leaving, loss on departure)
-    #   -> loss factor = 1        when v[j] < 0 (power actually arriving, no loss here)
-    # For a -1 entry (flow arrives at node i): L[i,j] = -v[j], so H(-L[i,j]) = H(+v[j])
-    #   -> loss factor = 1 - eps  when v[j] > 0 (power arriving, should incur loss)
-    #   -> loss factor = 1        when v[j] < 0 (power actually leaving, no loss here)
-    # This is correct! H(-L) naturally flags the receiving end for each signed flow.
-    # BUT: for negated demand rows (multiplied by -1), the signs of A entries flip,
-    # so we must use the ORIGINAL (un-negated) A sign to determine loss direction.
-    # Solution: compute loss flags from |A| and sign of v directly.
-
-    # Loss factor matrix: loss applies when flow is POSITIVE in the branch direction
-    # i.e., when v[j] > 0 for a branch that leaves node i (A[i,j]=+1 in original)
-    # and when v[j] > 0 for a branch that arrives at node i (A[i,j]=-1 in original)
-    # In both cases, H(v[j]) > 0 flags "flow is in positive direction" = receiving end loses
-    # The receiving end is where A[i,j] = -1 (in original un-negated rows).
-    # So loss applies to entries where A_orig[i,j] = -1 and v[j] > 0,
-    # OR where A_orig[i,j] = +1 and v[j] < 0 (flow reversed, so this node is receiving).
-    # This is exactly H(-L) where L = A_orig @ diag(v).
-    # Since demand rows are negated, we store C.A_orig for the loss computation.
-    A_orig = C.A_orig  # original un-negated A (same as A for rows 0-1, negated back for 2-13)
+    A_orig = C.A_orig  # 14x24 un-negated matrix — physical signs for loss computation
     L = A_orig @ np.diag(v)                        # 14x24, use original signs for loss
     A_scaled = C.A * (1 - loss * H(-L))            # apply scaled A (with negated demand rows)
     f = c @ v
     g = A_scaled @ v - b
 
     return f, g
-# --------------------------------- end of function power_grid_analysis(v, C) --
-
 
 # ==============================================================================
-# Set up and solve the grid transmission optimization problem
+# where i actually solve the problem and do the Monte Carlo risk analysis
 # ==============================================================================
 
 # --- Problem constants --------------------------------------------------------
@@ -138,7 +72,6 @@ G    = np.array([110, 300])                    # max generation capacity [PA, PB
 T    = 90                                      # max transmission capacity per line, MW
 loss = 0.05                                    # transmission loss factor epsilon
 
-# --- Build the SimpleNamespace of constants C --------------------------------
 C = SimpleNamespace()
 
 # 14x24 constraint matrix A (entries: 0, +1, -1)
@@ -152,22 +85,12 @@ C = SimpleNamespace()
 # Sign convention:
 #   +1 at a node means that variable's power LEAVES that node
 #   -1 at a node means that variable's power ARRIVES at that node
-#
-# Generator rows use +1 for all outgoing flows (cap constraint: total out <= G)
-# Demand rows are negated (multiply by -1) so >= becomes <= for sqp:
-#   original: (net in) >= D  ->  -(net in) <= -D
-#   "net in" = sum of arriving flows - sum of leaving flows
-#   so negated row: (leaving) - (arriving) <= -D
-#
-#         PA1  PA2  PA3  PB7  PB8  PB9  P12 P111 P112  P23 P212  P34  P45  P46  P56  P57  P67  P68  P78  P89 P910 P1011 P1012 P1112
 C.A = np.array([
     # Row 0: Node A — all flows leave A, total <= G_A
     [  1,   1,   1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
     # Row 1: Node B — all flows leave B, total <= G_B
     [  0,   0,   0,   1,   1,   1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
     # Row 2: Node 1 — negate demand constraint
-    # arrives: PA1(-1), P12(-1 arriving from 2 if P12>0? No: P12 leaves 1)
-    # Node 1 connects to: A(arrives PA1), 2(P12 leaves), 11(P1_11 leaves), 12(P1_12 leaves)
     # net in = PA1_arrival - P12_leaving - P1_11_leaving - P1_12_leaving >= D1
     # negated: -PA1_arrival + P12_leaving + P1_11_leaving + P1_12_leaving <= -D1
     [ -1,   0,   0,   0,   0,   0,   1,   1,   1,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0],
@@ -230,8 +153,6 @@ C.c = np.block([cA*np.ones(3), cB*np.ones(3), np.zeros(18)])
 C.loss = loss
 
 # A_orig: un-negated constraint matrix — used to compute loss direction correctly.
-# Demand rows (2-13) were negated in C.A so all constraints are <=.
-# For the Heaviside loss term we need the original physical signs.
 C.A_orig = C.A.copy()
 C.A_orig[2:, :] *= -1   # un-negate the demand rows (rows 2-13)
 
@@ -253,14 +174,12 @@ v_ub      = T * np.ones(n)           # all flows upper bound = T
 # Physics-informed initial guess: push power through the network from each
 # generator toward its local demand nodes. Total demand = 276 MW.
 # B (cheap, cB=12) is loaded heavily; A (expensive, cA=20) covers nodes 1-3.
-#           PA1   PA2   PA3   PB7   PB8   PB9
+
+# Initial guess for power flows v (24,):
 v_init = np.array([
     15.0, 20.0, 25.0, 85.0, 85.0, 85.0,  # generator flows
-#   P12  P1_11 P1_12   P23 P2_12   P34
      5.0,  5.0,  5.0,  5.0,  5.0, 20.0,  # upper-network transmission
-#   P45   P46   P56   P57   P67   P68
     10.0, 10.0, 10.0, 10.0, 10.0, 10.0,  # mid-network transmission
-#   P78   P89  P9_10 P10_11 P10_12 P11_12
     10.0, 50.0, 50.0,  5.0,  5.0,  5.0,  # lower-network transmission
 ])
 
@@ -335,15 +254,9 @@ print("  Upper bound ok:", np.all(v_opt <= v_ub + 1e-4))
 
 
 # ==============================================================================
-# Tasks 7 & 8 — Monte Carlo Risk Analysis
+# Monte Carlo Risk Analysis stuff
 # ==============================================================================
-# Set N = 100 for the Monte Carlo sample size
 N = 100
-
-# ---- Task 7: uncorrelated demands and line capacities -----------------------
-print("\n" + "="*60)
-print("TASK 7: Monte Carlo with UNCORRELATED uncertainties")
-print("="*60)
 
 # Lognormal demands: median = D, CoV = 0.1 for all nodes
 medD = D.copy()                           # median demand vector, MW
@@ -369,10 +282,8 @@ for k in range(N):
     Dk = Drand[:, k]      # random demand vector for this sample, MW
     Tk = Trand[:, k]      # random capacity vector for this sample, MW
 
-    # Update RHS: generator rows unchanged, demand rows use sampled Dk
     C.b = np.block([G, -Dk])
 
-    # Update bounds with sampled line capacity
     v_lb_k        = np.zeros(n)
     v_lb_k[0:6]   = 0.0             # generator branches non-negative
     v_lb_k[6:]    = -Tk[6:]         # bidirectional branches
